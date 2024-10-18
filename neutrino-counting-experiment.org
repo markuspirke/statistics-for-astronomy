@@ -1,0 +1,55 @@
+* Setup
+#+begin_src julia
+using Distributions, CairoMakie
+
+function set_mytheme!()
+    mytheme = Theme(fontsize = 12,
+    Axis = (
+        xgridvisible = false,
+        ygridvisible = false,
+    ))
+    mytheme_latex = merge(mytheme, theme_latexfonts())
+    set_theme!(mytheme_latex)
+end
+#+end_src
+Let us assume we have a neutrino detector, that we want to use to monitor a nearby fission reactor. Our detector observes incoming neutrinos from the reactor.
+If everything is working, we expect a rate of 5 neutrinos per second.
+#+begin_src julia
+λ = 5
+Δt = 3
+n_measurements = 50
+distribution_theory = Poisson(λ)
+rates = rand(distribution_theory, n_measurements*Δt)
+#+end_src
+In our experiment we will measure individual counts at a certain time. These are independent from each other. To simulate this accurately we transform the /rates/ from above into individual counts.
+#+begin_src julia
+struct NeutrinoMeasurement
+    t
+end
+
+function rates2counts(rates)
+    measurements = NeutrinoMeasurement[]
+    for (i, rate) in enumerate(rates)
+        ts = rand(Uniform(i-1, i), rate)
+        for t in ts
+            push!(measurements, NeutrinoMeasurement(t))
+        end
+    end
+
+    measurements
+end
+
+measurements = rates2counts(rates)
+#+end_src
+This gives us individual measurements, that follow a Poisson statistics as we expect from such a process. Lets plot them and than bin them into a histogram.
+
+#+begin_src julia
+fig = Figure()
+ax = Axis(fig[1,1], xlabel="time / s",
+          limits=(nothing, (0, 2))
+                )
+
+for m in measurements
+    vlines!(ax, m.t; ymin=0, ymax=0.5, color=(:blue, 0.5))
+end
+#+end_src
